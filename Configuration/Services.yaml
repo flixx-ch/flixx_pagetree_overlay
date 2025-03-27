@@ -1,0 +1,13 @@
+services:
+  FLIXX\FlixxPagetreeOverlay\Backend\EventListener\BackendAssetsListener:
+    tags:
+      - name: event.listener
+        identifier: 'flixx-pagetree-overlay/backend-assets-listener'
+        event: TYPO3\CMS\Backend\Controller\Event\AfterBackendPageRenderEvent
+
+  FLIXX\FlixxPagetreeOverlay\Backend\EventListener\PageTreeLanguageOverlayListener:
+    autowire: true
+    tags:
+      - name: event.listener
+        identifier: 'flixx-pagetree-language-overlay/listener'
+
