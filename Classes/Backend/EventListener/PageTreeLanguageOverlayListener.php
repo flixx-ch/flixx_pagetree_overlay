@@ -40,43 +40,45 @@ final class PageTreeLanguageOverlayListener
      */
     public function __invoke(AfterRawPageRowPreparedEvent $event): void
     {
+        if ($GLOBALS['BE_USER']) {
         // Retrieve the current raw page record
-        $rawPage = $event->getRawPage();
-        $pageId  = (int)$rawPage['uid'];
-
-        // Get currently selected language UID from backend user's session data
-        $langUid = (int)$GLOBALS['BE_USER']->getSessionData('navTreeLanguage');
-
-        // Proceed only if a language other than default is selected
-        if ($langUid > 0) {
-            // Check if the current page record is in default language
-            if (($rawPage['sys_language_uid'] ?? 0) === 0) {
-                // Establish a database connection to the "pages" table
-                $connection = GeneralUtility::makeInstance(ConnectionPool::class)
-                    ->getConnectionForTable('pages');
-
-                // Build and execute the query to fetch the translated page title
-                $qb = $connection->createQueryBuilder();
-                $translation = $qb
-                    ->select('title')
-                    ->from('pages')
-                    ->where(
-                        $qb->expr()->eq('sys_language_uid', $langUid),
-                        $qb->expr()->eq('l10n_parent', $qb->createNamedParameter($pageId, ParameterType::INTEGER)),
-                        $qb->expr()->eq('deleted', 0),
-                    )
-                    ->setMaxResults(1)
-                    ->executeQuery()
-                    ->fetchAssociative();
-
-                // If translation exists, update the page title in the page tree
-                if ($translation) {
-                    $rawPage['title'] = 'L' . $langUid . '] ' . $translation['title'];
+            $rawPage = $event->getRawPage();
+            $pageId  = (int)$rawPage['uid'];
+    
+            // Get currently selected language UID from backend user's session data
+            $langUid = (int)$GLOBALS['BE_USER']->getSessionData('navTreeLanguage');
+    
+            // Proceed only if a language other than default is selected
+            if ($langUid > 0) {
+                // Check if the current page record is in default language
+                if (($rawPage['sys_language_uid'] ?? 0) === 0) {
+                    // Establish a database connection to the "pages" table
+                    $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+                        ->getConnectionForTable('pages');
+    
+                    // Build and execute the query to fetch the translated page title
+                    $qb = $connection->createQueryBuilder();
+                    $translation = $qb
+                        ->select('title')
+                        ->from('pages')
+                        ->where(
+                            $qb->expr()->eq('sys_language_uid', $langUid),
+                            $qb->expr()->eq('l10n_parent', $qb->createNamedParameter($pageId, ParameterType::INTEGER)),
+                            $qb->expr()->eq('deleted', 0),
+                        )
+                        ->setMaxResults(1)
+                        ->executeQuery()
+                        ->fetchAssociative();
+    
+                    // If translation exists, update the page title in the page tree
+                    if ($translation) {
+                        $rawPage['title'] = 'L' . $langUid . '] ' . $translation['title'];
+                    }
                 }
+    
+                // Set the updated raw page data back into the event object
+                $event->setRawPage($rawPage);
             }
-
-            // Set the updated raw page data back into the event object
-            $event->setRawPage($rawPage);
         }
     }
 }
