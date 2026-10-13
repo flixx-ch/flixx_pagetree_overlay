@@ -15,7 +15,7 @@ $EM_CONF['flixx_pagetree_overlay'] = [
     'author_email' => 'hello@flixx.ch',
     'author_company' => 'flixx.ch - Digital- & TYPO3 Agentur',
     'state' => 'stable',
-    'version' => '1.0.1',
+    'version' => '1.0.2',
     'constraints' => [
         'depends' => ['typo3' => '13.4.8-13.99.99'],
     ],
