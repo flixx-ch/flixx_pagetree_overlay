@@ -44,8 +44,8 @@ final class PageTreeLanguageOverlayListener
         $rawPage = $event->getRawPage();
         $pageId  = (int)$rawPage['uid'];
 
-        // Get currently selected language UID from backend user's session data
-        $langUid = (int)$GLOBALS['BE_USER']->getSessionData('navTreeLanguage');
+        // Get currently selected language UID (session data or User TSconfig)
+        $langUid = $this->getSelectedLanguage();
 
         // Proceed only if a language other than default is selected
         if ($langUid > 0) {
@@ -78,5 +78,25 @@ final class PageTreeLanguageOverlayListener
             // Set the updated raw page data back into the event object
             $event->setRawPage($rawPage);
         }
+    }
+
+    /**
+     * Returns the selected language like the language dropdown does:
+     * session data first, then User TSconfig, otherwise 0.
+     *
+     * Example User TSconfig:
+     * plugin.tx_flixxpagetreeoverlay.defaultNavTreeLanguage = 2
+     */
+    private function getSelectedLanguage(): int
+    {
+        // Language explicitly set in backend user session (overrides TSconfig)
+        $sessionLanguage = $GLOBALS['BE_USER']->getSessionData('navTreeLanguage');
+        if (isset($sessionLanguage)) {
+            return (int)$sessionLanguage;
+        }
+
+        // Fall back to User TSconfig (if configured)
+        $userTsConfig = $GLOBALS['BE_USER']->getTSConfig();
+        return (int)($userTsConfig['plugin.']['tx_flixxpagetreeoverlay.']['defaultNavTreeLanguage'] ?? 0);
     }
 }
