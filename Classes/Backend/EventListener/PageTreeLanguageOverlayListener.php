@@ -15,6 +15,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\ParameterType;
 use TYPO3\CMS\Backend\Tree\Repository\AfterRawPageRowPreparedEvent;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -89,14 +90,20 @@ final class PageTreeLanguageOverlayListener
      */
     private function getSelectedLanguage(): int
     {
+        // Without a backend user (page tree loaded in frontend or CLI context) keep the default language
+        $backendUser = $GLOBALS['BE_USER'] ?? null;
+        if (!$backendUser instanceof BackendUserAuthentication) {
+            return 0;
+        }
+
         // Language explicitly set in backend user session (overrides TSconfig)
-        $sessionLanguage = $GLOBALS['BE_USER']->getSessionData('navTreeLanguage');
+        $sessionLanguage = $backendUser->getSessionData('navTreeLanguage');
         if (isset($sessionLanguage)) {
             return (int)$sessionLanguage;
         }
 
         // Fall back to User TSconfig (if configured)
-        $userTsConfig = $GLOBALS['BE_USER']->getTSConfig();
+        $userTsConfig = $backendUser->getTSConfig();
         return (int)($userTsConfig['plugin.']['tx_flixxpagetreeoverlay.']['defaultNavTreeLanguage'] ?? 0);
     }
 }
