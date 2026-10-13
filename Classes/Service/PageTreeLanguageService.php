@@ -28,7 +28,11 @@ final readonly class PageTreeLanguageService
      */
     public function getSelectedLanguage(): int
     {
+        // Without a backend user (page tree loaded in frontend or CLI context) keep the default language
         $backendUser = $this->getBackendUser();
+        if ($backendUser === null) {
+            return 0;
+        }
 
         // Language explicitly set in backend user session (overrides TSconfig)
         $sessionLanguage = $backendUser->getSessionData(self::SESSION_KEY);
@@ -43,11 +47,12 @@ final readonly class PageTreeLanguageService
 
     public function setSelectedLanguage(int $language): void
     {
-        $this->getBackendUser()->setAndSaveSessionData(self::SESSION_KEY, $language);
+        $this->getBackendUser()?->setAndSaveSessionData(self::SESSION_KEY, $language);
     }
 
-    private function getBackendUser(): BackendUserAuthentication
+    private function getBackendUser(): ?BackendUserAuthentication
     {
-        return $GLOBALS['BE_USER'];
+        $backendUser = $GLOBALS['BE_USER'] ?? null;
+        return $backendUser instanceof BackendUserAuthentication ? $backendUser : null;
     }
 }
