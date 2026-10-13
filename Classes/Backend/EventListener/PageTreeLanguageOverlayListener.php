@@ -11,11 +11,12 @@ declare(strict_types=1);
 
 namespace FLIXX\FlixxPagetreeOverlay\Backend\EventListener;
 
-use Doctrine\DBAL\Exception;
-use Doctrine\DBAL\ParameterType;
+use FLIXX\FlixxPagetreeOverlay\Service\PageTreeLanguageService;
 use TYPO3\CMS\Backend\Tree\Repository\AfterRawPageRowPreparedEvent;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -23,10 +24,15 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * based on the currently selected backend language (stored in session).
  */
 #[AsEventListener(
-    identifier: 'site-language-tree/overlay-titles'
+    identifier: 'flixx-pagetree-overlay/overlay-titles'
 )]
-final class PageTreeLanguageOverlayListener
+final readonly class PageTreeLanguageOverlayListener
 {
+    public function __construct(
+        private ConnectionPool $connectionPool,
+        private PageTreeLanguageService $pageTreeLanguageService,
+    ) {}
+
     /**
      * Modifies the page tree titles to reflect the selected backend language.
      *
@@ -36,46 +42,43 @@ final class PageTreeLanguageOverlayListener
      * - Updates the page title in the page tree, if a translation exists.
      *
      * @param AfterRawPageRowPreparedEvent $event Event containing page data after initial processing.
-     * @throws Exception
      */
     public function __invoke(AfterRawPageRowPreparedEvent $event): void
     {
-        // Retrieve the current raw page record
-        $rawPage = $event->getRawPage();
-        $pageId  = (int)$rawPage['uid'];
-
-        // Get currently selected language UID from backend user's session data
-        $langUid = (int)$GLOBALS['BE_USER']->getSessionData('navTreeLanguage');
+        // Get currently selected language UID (session data or User TSconfig)
+        $langUid = $this->pageTreeLanguageService->getSelectedLanguage();
 
         // Proceed only if a language other than default is selected
-        if ($langUid > 0) {
-            // Check if the current page record is in default language
-            if (($rawPage['sys_language_uid'] ?? 0) === 0) {
-                // Establish a database connection to the "pages" table
-                $connection = GeneralUtility::makeInstance(ConnectionPool::class)
-                    ->getConnectionForTable('pages');
+        if ($langUid <= 0) {
+            return;
+        }
 
-                // Build and execute the query to fetch the translated page title
-                $qb = $connection->createQueryBuilder();
-                $translation = $qb
-                    ->select('title')
-                    ->from('pages')
-                    ->where(
-                        $qb->expr()->eq('sys_language_uid', $langUid),
-                        $qb->expr()->eq('l10n_parent', $qb->createNamedParameter($pageId, ParameterType::INTEGER)),
-                        $qb->expr()->eq('deleted', 0),
-                    )
-                    ->setMaxResults(1)
-                    ->executeQuery()
-                    ->fetchAssociative();
+        // Retrieve the current raw page record, skip the virtual root node (uid 0)
+        $rawPage = $event->getRawPage();
+        $pageId = (int)($rawPage['uid'] ?? 0);
+        if ($pageId === 0 || (int)($rawPage['sys_language_uid'] ?? 0) !== 0) {
+            return;
+        }
 
-                // If translation exists, update the page title in the page tree
-                if ($translation) {
-                    $rawPage['title'] = 'L' . $langUid . '] ' . $translation['title'];
-                }
-            }
+        // Build and execute the query to fetch the translated page title
+        $qb = $this->connectionPool->getQueryBuilderForTable('pages');
+        $qb->getRestrictions()->add(
+            GeneralUtility::makeInstance(WorkspaceRestriction::class, $event->getWorkspaceId())
+        );
+        $translatedTitle = $qb
+            ->select('title')
+            ->from('pages')
+            ->where(
+                $qb->expr()->eq('sys_language_uid', $qb->createNamedParameter($langUid, Connection::PARAM_INT)),
+                $qb->expr()->eq('l10n_parent', $qb->createNamedParameter($pageId, Connection::PARAM_INT)),
+            )
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchOne();
 
-            // Set the updated raw page data back into the event object
+        // If translation exists, update the page title in the page tree
+        if ($translatedTitle !== false) {
+            $rawPage['title'] = 'L' . $langUid . '] ' . $translatedTitle;
             $event->setRawPage($rawPage);
         }
     }

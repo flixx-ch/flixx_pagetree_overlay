@@ -1,7 +1,7 @@
 {
   "name": "flixx/flixx_pagetree_overlay",
   "type": "typo3-cms-extension",
-  "description": "TYPO3 backend extension to dynamically switch page tree languages via dropdown with immediate refresh.",
+  "description": "FLIXX PageTree Language Overlay with Dropdown - TYPO3 backend extension to dynamically switch page tree languages via dropdown with immediate refresh.",
   "homepage": "https://www.flixx.ch",
   "license": ["GPL-2.0-or-later"],
   "keywords": ["typo3", "flixx", "pagetree", "language overlay", "backend"],
@@ -11,12 +11,18 @@
   }],
   "require": {
     "php": ">=8.2",
-    "typo3/cms-core": "^13.4"
+    "typo3/cms-backend": "^14.3",
+    "typo3/cms-core": "^14.3"
   },
   "autoload": {
     "psr-4": {"FLIXX\\FlixxPagetreeOverlay\\": "Classes/"}
   },
   "extra": {
-    "typo3/cms": {"extension-key": "flixx_pagetree_overlay"}
+    "typo3/cms": {
+      "extension-key": "flixx_pagetree_overlay",
+      "Package": {
+        "providesPackages": {}
+      }
+    }
   }
 }

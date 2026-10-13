@@ -17,6 +17,6 @@ $EM_CONF['flixx_pagetree_overlay'] = [
     'state' => 'stable',
     'version' => '1.0.0',
     'constraints' => [
-        'depends' => ['typo3' => '13.4.8-13.99.99'],
+        'depends' => ['typo3' => '14.3.0-14.99.99'],
     ],
 ];

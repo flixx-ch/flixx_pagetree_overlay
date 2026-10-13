@@ -11,19 +11,22 @@ declare(strict_types=1);
 
 namespace FLIXX\FlixxPagetreeOverlay\Backend\EventListener;
 
-use TYPO3\CMS\Backend\Controller\Event\AfterBackendPageRenderEvent;
-use TYPO3\CMS\Core\Page\PageRenderer;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Backend\Controller\Event\BeforeBackendPageRenderEvent;
+use TYPO3\CMS\Core\Attribute\AsEventListener;
+use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
 
-class BackendAssetsListener
+/**
+ * Loads the language dropdown JavaScript module into the backend top frame.
+ */
+#[AsEventListener(
+    identifier: 'flixx-pagetree-overlay/backend-assets-listener'
+)]
+final readonly class BackendAssetsListener
 {
-    /**
-     * @param AfterBackendPageRenderEvent $event
-     * @return void
-     */
-    public function __invoke(AfterBackendPageRenderEvent $event): void
+    public function __invoke(BeforeBackendPageRenderEvent $event): void
     {
-        $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
-        $pageRenderer->loadJavaScriptModule('@flixx/pagetree-overlay/languageDropdown.js');
+        $event->javaScriptRenderer->addJavaScriptModuleInstruction(
+            JavaScriptModuleInstruction::create('@flixx/pagetree-overlay/languageDropdown.js')
+        );
     }
 }
